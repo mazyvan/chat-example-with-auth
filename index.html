@@ -1,37 +1,115 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
     <title>Socket.IO chat</title>
     <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font: 13px Helvetica, Arial; }
-      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
-      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
-      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
-      #messages { list-style-type: none; margin: 0; padding: 0; }
-      #messages li { padding: 5px 10px; }
-      #messages li:nth-child(odd) { background: #eee; }
-      #messages { margin-bottom: 40px }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font: 13px Helvetica, Arial;
+      }
+      form {
+        background: #000;
+        padding: 3px;
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+      }
+      form input {
+        border: 0;
+        padding: 10px;
+        width: 90%;
+        margin-right: 0.5%;
+      }
+      form button {
+        width: 9%;
+        background: rgb(130, 224, 255);
+        border: none;
+        padding: 10px;
+      }
+      #messages {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+      }
+      #messages li {
+        padding: 5px 10px;
+      }
+      #messages li:nth-child(odd) {
+        background: #eee;
+      }
+      #messages {
+        margin-bottom: 40px;
+      }
     </style>
   </head>
   <body>
     <ul id="messages"></ul>
-    <form action="">
-      <input id="m" autocomplete="off" /><button>Send</button>
-    </form>
+    <form><input id="m" autocomplete="off" /><button>Send</button></form>
     <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
-      $(function () {
-        var socket = io();
-        $('form').submit(function(){
-          socket.emit('chat message', $('#m').val());
-          $('#m').val('');
+      $(function() {
+        var socket = io("http://127.0.0.1:3000", {
+          transports: ["websocket"],
+          upgrade: false,
+          query: {
+            token: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJiMzMwZmQ1ZS03OGM0LTRmYzItYWMxOC0zODBhZDkyMWE0YjciLCJzdWIiOiJhNmUzYzRhZC1mMTRjLTQ4NjEtYWRmMi04NDFmNWY0ZGQwY2IiLCJuYW1lIjoiR2F5bG9yZCBQb3Vyb3MgSm9obnMiLCJlbWFpbCI6bnVsbCwicGFzc3BvcnROdW1iZXIiOiIzMTI1NzUxMCIsImlhdCI6MTU1MTcyNzc0NywiZXhwIjoxNTgzMjYzNzQ3LCJhdWQiOiJxdWl1Ym94YXBwIiwiaXNzIjoicXVpdWJveGFwaSJ9.8ttCLF8xhIoSS3ThnQCVoo04nSHHyy0ProErvbVRq5o`
+          }
+        });
+
+        $("form").submit(function(e) {
+          socket.emit("events", {
+            cri: 1,
+            type: "message",
+            data: {
+              text: $("#m").val(),
+              chatId: "c918ba98-e787-47ca-8190-5cd1040b3269"
+            }
+          });
+          $("#m").val("");
+          e.stopPropagation();
+          e.preventDefault();
           return false;
         });
-        socket.on('chat message', function(msg){
-          $('#messages').append($('<li>').text(msg));
+
+        socket.on("events", function(msg) {
+          console.log("EVENTS: ", msg);
+          if (msg.type == "error") return alert(msg.error.message);
+
+          $("#messages").append($("<li>").text(msg.data.text));
           window.scrollTo(0, document.body.scrollHeight);
+        });
+
+        socket.on("message", function(msg) {
+          console.log("NEW MESSAGE!!!! ", msg);
+        });
+
+        socket.on("error", function(error) {
+          console.log("ERROR HERE!!!! ", error);
+        });
+
+        socket.on("connect_error", function(error) {
+          console.log("CANT CONNECT!!!! ", error);
+          // ...
+        });
+
+        socket.on("connect_failed", function(error) {
+          console.log("CONNECT FAILED!!!! ", error);
+          // ...
+        });
+
+        socket.on("disconnect", error => {
+          console.log("DISCONNECTED!!!! ", error);
+          // ...
+        });
+
+        socket.on("exception", error => {
+          console.log("exception PLEASEEEEEEEEE WORK!!!! ", error);
+          // ...
         });
       });
     </script>
