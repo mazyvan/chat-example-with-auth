@@ -38,9 +38,6 @@
       #messages li {
         padding: 5px 10px;
       }
-      #messages li:nth-child(odd) {
-        background: #eee;
-      }
       #messages {
         margin-bottom: 40px;
       }
@@ -51,25 +48,30 @@
     <form><input id="m" autocomplete="off" /><button>Send</button></form>
     <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script src="./jwt-decode.min.js"></script>
     <script>
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get("token");
+      const tokenDecoded = jwt_decode(token);
+      let cri = 1;
+
       $(function() {
         var socket = io("http://127.0.0.1:3000", {
           transports: ["websocket"],
           upgrade: false,
-          query: {
-            token: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJiMzMwZmQ1ZS03OGM0LTRmYzItYWMxOC0zODBhZDkyMWE0YjciLCJzdWIiOiJhNmUzYzRhZC1mMTRjLTQ4NjEtYWRmMi04NDFmNWY0ZGQwY2IiLCJuYW1lIjoiR2F5bG9yZCBQb3Vyb3MgSm9obnMiLCJlbWFpbCI6bnVsbCwicGFzc3BvcnROdW1iZXIiOiIzMTI1NzUxMCIsImlhdCI6MTU1MTcyNzc0NywiZXhwIjoxNTgzMjYzNzQ3LCJhdWQiOiJxdWl1Ym94YXBwIiwiaXNzIjoicXVpdWJveGFwaSJ9.8ttCLF8xhIoSS3ThnQCVoo04nSHHyy0ProErvbVRq5o`
-          }
+          query: { token: token }
         });
 
         $("form").submit(function(e) {
           socket.emit("events", {
-            cri: 1,
+            cri: cri,
             type: "message",
             data: {
               text: $("#m").val(),
-              chatId: "c918ba98-e787-47ca-8190-5cd1040b3269"
+              chatId: urlParams.get("chat")
             }
           });
+          cri++;
           $("#m").val("");
           e.stopPropagation();
           e.preventDefault();
@@ -78,10 +80,18 @@
 
         socket.on("events", function(msg) {
           console.log("EVENTS: ", msg);
+          if (msg.type == "hello") return alert("Bienvenido");
           if (msg.type == "error") return alert(msg.error.message);
+          if (msg.type == "success") return;
 
-          $("#messages").append($("<li>").text(msg.data.text));
-          window.scrollTo(0, document.body.scrollHeight);
+          if (tokenDecoded.sub == msg.data.sendBy.id)
+            $("#messages").append(
+              $("<li>")
+                .css("text-align", "right")
+                .css("background", "#eee")
+                .text(msg.data.text)
+            );
+          else $("#messages").append($("<li>").text(msg.data.text));
         });
 
         socket.on("message", function(msg) {
